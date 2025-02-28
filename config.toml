@@ -1,13 +1,16 @@
 [script]
 upload_url = ""
+shared_name = ""
+url_username = ""
+url_password = ""
 
 [pacha]
 # standard windows path: C:\Users\<USERNAME>\AppData\LocalLow\Soda Den\Roots of Pacha\saves
 # standard macOS path: /Users/<USERNAME>/Library/Application Support/Soda Den/Roots of Pacha/saves
-pacha_path = ""
+path = ""
 
 [stardew]
 # standard windows path: C:\Users\<USERNAME>\AppData\Roaming\StardewValley\Saves 
 # standard macOS path: /Users/<USERNAME>/.config/StardewValley/Saves
-stardew_path = ""
+path = ""
 
