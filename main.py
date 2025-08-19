@@ -4,6 +4,9 @@ import json
 import shutil
 import requests
 import os
+import re
+from xml.dom.minidom import parse, parseString
+
 
 cfg = {}
 
@@ -180,12 +183,120 @@ def download_and_unzip(game):
     shutil.unpack_archive(dest / filename, dest)
     os.remove(dest / filename)
 
+
     clear()
     print("=== ++ SAVE UPDATED! ++ ===")
-    prompt_user()
+
+    if game == "stardew":
+        select_stardew_file_for_update()
+    else:
+        prompt_user()
+
+def select_stardew_file_for_update():
+    i = 1
+    print("UPDATE FARM OWNER")
+    print("")
+    for s in list_stardew_saves():
+        print(str(i) + ") Update " + s[0])
+        i = i + 1
+    print("0) Go Back")
+    print("")
+    stardew_choice = input("Choice? > ")
+    match stardew_choice:
+        case "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9":
+            if int(stardew_choice) > i:
+                clear()
+                print("Invalid Option, try again")
+                select_stardew_file_for_update()
+            else:
+                update_stardew_file(list_stardew_saves()[int(stardew_choice) - 1][1])
 
 
-    
+
+def update_stardew_file(folder_path):
+
+    # fpath = Path(cfg["stardew"]["path"]) / (cfg["script"]["shared_name"] + "_stardew")
+    pattern = re.compile(".*_\\d{9,11}$")
+
+    matching_mapfile = [f for f in os.listdir(folder_path) if pattern.match(f)]
+
+    savegamepath = Path(folder_path) / "SaveGameInfo"
+    mapfilepath = Path(folder_path) / matching_mapfile[0]
+
+    savegame = parse(str(savegamepath))
+    mapfile = parse(str(mapfilepath))
+
+    max_select = 1
+
+    print("")
+    print("Who is playing?")
+    print("")
+    print(" ================================== ")
+    print("OPTIONS: ")
+    print("1) " + savegame.documentElement.firstChild.firstChild.nodeValue + " (Current Farmer)")
+
+    for index, farmhand in enumerate(mapfile.getElementsByTagName("Farmer")):
+        name = farmhand.firstChild.firstChild.nodeValue if farmhand.firstChild is not None and farmhand.firstChild.firstChild is not None else ""
+        print(str(index + 2) + ") " + name)
+        max_select = index + 2
+    print("0) Return to Main Menu")
+
+    choice = input("Swap with who? > ")
+    match choice:
+        case 1:
+            clear()
+            prompt_user()
+        case "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9":
+            if int(choice) > max_select:
+                clear()
+                print("Invalid Option, try again")
+                update_stardew_file(folder_path)
+            else:
+                target_farmhand = mapfile.getElementsByTagName("Farmer")[int(choice) - 2]
+                owner = mapfile.documentElement.firstChild
+                savegame_owner = savegame.documentElement.firstChild
+
+                target_farmhand_children = [child.cloneNode(deep=True) for child in get_element_children(target_farmhand)]
+                owner_children = [child.cloneNode(deep=True) for child in get_element_children(owner)]
+                
+                for child in get_element_children(target_farmhand):
+                    target_farmhand.removeChild(child)
+                for child in get_element_children(owner):
+                    owner.removeChild(child)
+
+                for child in owner_children:
+                    target_farmhand.appendChild(child)
+                for child in target_farmhand_children:
+                    owner.appendChild(child)
+
+                with open(str(mapfilepath), "w") as f:
+                    f.write(mapfile.toxml())
+
+                for child in get_element_children(savegame_owner):
+                    savegame_owner.removeChild(child)
+
+                for child in target_farmhand_children:
+                    savegame_owner.appendChild(child)
+
+                with open(str(savegamepath), "w") as f:
+                    f.write(savegame.toxml())
+
+
+
+
+
+        case "0":
+            clear()
+            prompt_user()
+        case _:
+            clear()
+            print("Invalid Option, try again")
+            update_stardew_file(folder_path)
+
+def get_element_children(node):
+    return [child for child in node.childNodes if child.nodeType == child.ELEMENT_NODE or child.nodeType == child.TEXT_NODE]
+
+
 
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
